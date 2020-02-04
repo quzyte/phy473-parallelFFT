@@ -1,0 +1,15 @@
+def fftn_mpi(u,fu):
+  """fftinthreedirectionsusingMPIandthepencildecomposition"""
+  Uc_hat_z[:]=rfft(u,axis=2)
+  #Transformtoxdirectionneglectingk=N/2(Nyquist)
+  Uc_hat_x[:]=rollaxis(Uc_hat_z[:,:,:-1].reshape((N1,N2,P1,N1)),2).\
+  reshape(Uc_hat_x.shape)
+  #Communicateanddofftinx-direction
+  commxz.Alltoall([Uc_hat_x,mpitype],[Uc_hat_xr,mpitype])
+  Uc_hat_x[:]=fft(Uc_hat_xr,axis=0)
+  #Communicateandtransformtoz-direction
+  commxy.Alltoall([Uc_hat_x,mpitype],[Uc_hat_xr,mpitype])
+  Uc_hat_y[:]=rollaxis(Uc_hat_xr.reshape((P2,N2,N2,N1)),1).\
+  reshape(Uc_hat_y.shape)
+  fu[:]=fft(Uc_hat_y,axis=1)
+  returnfu
