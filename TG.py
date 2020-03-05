@@ -1,5 +1,10 @@
+import time
+start_time=time.time()
 from numpy import*
 from numpy.fft import fftfreq,fft,ifft,irfft2,rfft2
+# from pyfftw.interfaces.numpy_fft import fft, ifft, irfft2, rfft2
+# import pyfftw
+# pyfftw.interfaces.cache.enable()
 from mpi4py import MPI
 nu=0.000625
 T=0.1
@@ -88,3 +93,4 @@ while t<T-1e-8:
 k=comm.reduce(0.5*sum(U*U)*(1./N)**3)
 if rank==0:
   assert round(k-0.124953117517,7)==0
+  print("execution time= ",time.time()-start_time)
