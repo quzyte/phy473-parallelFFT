@@ -1,4 +1,3 @@
-from __future__ import print_function, division
 from time import time
 from numpy import *
 from numpy.fft import fftfreq, fft, ifft, irfft2, rfft2
