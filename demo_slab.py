@@ -18,6 +18,12 @@ Uc_hatT = np.empty((Np, N, N//2+1), dtype=complex)
 
 U = np.sin(X[0])*np.cos(X[1])*np.cos(X[2])
 
+def print_(*args, comm_arg=MPI.COMM_WORLD, checkRank=0, **kwargs):
+    """function to print arguments only in one core (default rank=0 in that comm group)"""
+    if comm_arg.Get_rank() == checkRank:
+        print(*args, **kwargs)
+
+
 try:
     from pyfftw.interfaces.numpy_fft import fft, ifft, irfft2, rfft2
     import pyfftw
@@ -25,11 +31,11 @@ try:
     fftw_status = 'Using pyfftw'
 except ImportError:
     fftw_status = 'Using numpy.fft'
-if rank == 0:
-    print(fftw_status)
-    print('real space data shape: ', U.shape)
-    print('k-space data shape: ', U_hat.shape)
-    print('cores: ', num_processes)
+
+print_(fftw_status)
+print_('real space data shape: ', U.shape)
+print_('k-space data shape: ', U_hat.shape)
+print_('cores: ', num_processes)
 
 
 def fftn_mpi(u, fu):
@@ -42,7 +48,7 @@ def fftn_mpi(u, fu):
 def ifftn_mpi(fu, u):
     Uc_hat[:] = ifft(fu, axis=0)
     comm.Alltoall(MPI.IN_PLACE, [Uc_hat, MPI.DOUBLE_COMPLEX])
-    Uc_hatT[:] = np.rollaxis(Uc_hat.reshape((num_processes, Np, Np, N//2+1)), 1).reshape(Uc_hatT.shape)
+    Uc_hatT[:] = np.moveaxis(Uc_hat.reshape((num_processes, Np, Np, N//2+1)), 1, 0).reshape(Uc_hatT.shape)
     u[:] = irfft2(Uc_hatT, axes=(1, 2))
     return u
 
@@ -58,9 +64,10 @@ k1 = comm.reduce(np.sum(U*U))
 k2 = comm.reduce(np.sum(U_approx*U_approx))
 dt1 = comm.reduce(t1-t0, op=MPI.MAX)
 dt2 = comm.reduce(t2-t1, op=MPI.MAX)
+
 if rank == 0:
-    print('\nTesting Results:')
-    print("Longest Thread Duration: Forward= ", round(dt1, 3), 's  Inverse= ', round(dt2, 3), 's')
-    print('Norm before = ', k1)
-    print('Norm after = ', k2)
-    print(f'Difference = {(k1-k2):.2e}')
+    print_('\nTesting Results:')
+    print_("Longest Thread Duration: Forward= ", round(dt1, 3), 's  Inverse= ', round(dt2, 3), 's')
+    print_('Norm before = ', k1)
+    print_('Norm after = ', k2)
+    print_(f'Difference = {(k1-k2)}')
