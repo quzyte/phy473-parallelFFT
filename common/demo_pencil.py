@@ -30,7 +30,7 @@ Uc_hat_xr = np.empty((N, N2, N1//2), dtype=complex)
 Uc_hat_y = np.empty((N2, N, N1//2), dtype=complex)
 U = np.empty((N1, N2, N))
 U_hat = np.empty((N2, N, N1//2), dtype=complex)
-U_approx = np.empty((N1, N2, N))
+# U_approx = np.empty((N1, N2, N))
 
 U = np.sin(X[0])*np.cos(X[1])*np.cos(X[2])
 
@@ -49,9 +49,9 @@ except ImportError:
     fftw_status = 'Using numpy.fft'
 
 print_(fftw_status)
-print_('real space data shape: ', U.shape)
-print_('k-space data shape: ', U_hat.shape)
-print_('cores: ', num_processes)
+# print_('real space data shape: ', U.shape)
+# print_('k-space data shape: ', U_hat.shape)
+# print_('cores: ', num_processes)
 
 
 def fftn_mpi(u, fu):
@@ -72,16 +72,18 @@ def ifftn_mpi(fu, u):
     Uc_hat_xr[:] = ifft(Uc_hat_x, axis=0)
     commxz.Alltoall([Uc_hat_xr, MPI.DOUBLE_COMPLEX], [Uc_hat_x, MPI.DOUBLE_COMPLEX])
     Uc_hat_z2[:] = np.moveaxis(Uc_hat_x.reshape((P1, N1, N2, N1//2)), 0, 2).reshape(Uc_hat_z2.shape)
-    u = irfft(Uc_hat_z, axis=2)
-    return u
+    u2 = irfft(Uc_hat_z2, axis=2)
+    return u2
+
 
 
 t0 = time()
 U_hat = fftn_mpi(U, U_hat)
 t1 = time()
-U_approx[:] = ifftn_mpi(U_hat, U)
+U_approx = ifftn_mpi(U_hat, U)
 t2 = time()
 
+print_(f' -- Rank: {rank} -- \nShapes: \t Pre FFT = {U.shape} \t Post FFT = {U_approx.shape}')
 
 k1 = comm.reduce(np.sum(U*U))
 k2 = comm.reduce(np.sum(U_approx*U_approx))
